@@ -6,27 +6,19 @@
             alert("WebGL2 not supported");
         }
 
+
         var vertexShaderSource = `#version 300 es
 
+precision highp float;
 in vec2 a_position;
 uniform vec2 u_resolution;
+uniform float zoom;
 out vec4 v_color;
 in vec2 start_position;
 
 void main() {
-    // convert the position from pixels to 0.0 to 1.0
-    //vec2 zeroToOne = a_position / u_resolution;
- 
-    // convert from 0->1 to 0->2
-    //vec2 zeroToTwo = zeroToOne * 2.0;
- 
-    // convert from 0->2 to -1->+1 (clip space)
-    //vec2 clipSpace = zeroToTwo - 1.0;
- 
-  //gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
     gl_Position = vec4(a_position, 0, 1);
-
-  v_color = gl_Position * 2.0;// * 0.5 + 0.5;
+    v_color = (gl_Position)* zoom;
 }
 `;
  
@@ -44,6 +36,7 @@ uniform float max_iterations;
 out vec4 outColor;
  
 void main() {
+  
   float x = 0.0f;
   float y = 0.0f;
   int iterations = 0;
@@ -66,12 +59,14 @@ void main() {
   }
     float res = float(iterations) / max_iterations;
 outColor = vec4(vec3(res), 1.0);
-  //outColor =  escaped ? vec4(vec3(1.0), 1.0) : vec4(vec3(0.0), 1.0);
+  
+//  outColor =  escaped ? vec4(vec3(1.0), 1.0) : vec4(vec3(0.0), 1.0);
 }
 `;
 
-        let xStartValue = -1.0;
-        let yStartValue = -1.0;
+        let xStartValue = -2.0;
+        let yStartValue = -2.0;
+        let zoomValue = 1.0;
         let maxIterationsValue = 16.0;
 
         addEventListener("keydown", (e) => {
@@ -84,6 +79,34 @@ outColor = vec4(vec3(res), 1.0);
                     e.preventDefault();
                     maxIterationsValue--;
                     break;
+                case "q":
+                    e.preventDefault();
+                    zoomValue+=0.01;
+                    break;
+                case "e":
+                    e.preventDefault();
+                    zoomValue-=0.01;
+                    break;
+                case "ArrowLeft":
+                    e.preventDefault();
+                    xStartValue-=0.1;
+                    break;
+
+                case "ArrowRight":
+                    e.preventDefault();
+                    xStartValue+=0.1;
+                    break;
+
+                case "ArrowUp":
+                    e.preventDefault();
+                    yStartValue-=0.1;
+                    break;
+
+                case "ArrowDown":
+                    e.preventDefault();
+                    yStartValue+=0.1;
+                    break;
+
             }
             console.log(maxIterationsValue);
         });
@@ -123,18 +146,19 @@ outColor = vec4(vec3(res), 1.0);
     let resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution")
     let maxIterationsLocation = gl.getUniformLocation(program, "max_iterations");
     let colorLocation = gl.getUniformLocation(program, "u_color");
-    let startLocation = gl.getAttribLocation(program, "start_position");
+    let startLocation = gl.getUniformLocation(program, "start_position");
+    let zoomLocation = gl.getUniformLocation(program,"zoom");
 //    let yStartLocation = gl.getUniformLocation(program, "y_start");
 
     let positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     var positions = [
-              -1, -1,
-              -1, 1,
-              1, 1,
-              -1, -1,
-              1, 1,
-              1, -1
+              -2, -2,
+              -2, 2,
+              2, 2,
+              -2, -2,
+              2, 2,
+              2, -2
 
     ];
 
@@ -157,15 +181,19 @@ outColor = vec4(vec3(res), 1.0);
 
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+//    gl.viewport(0, 0, 200, 200);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
         
 // Pass in the canvas resolution so we can convert from
 // pixels to clip space in the shader
-gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(startLocation, xStartValue, yStartValue);
+//    gl.bindAttribLocation(program, startLocation, xStartValue, yStartValue);
         gl.uniform4f(colorLocation, Math.random(), Math.random(), Math.random(), 1);
         gl.uniform1f(maxIterationsLocation, maxIterationsValue);
+        gl.uniform1f(zoomLocation, zoomValue);
         gl.bindVertexArray(vao);
         var primitiveType = gl.TRIANGLES;
 var offset = 0;
