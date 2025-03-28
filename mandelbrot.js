@@ -1,24 +1,27 @@
 
     
-        let canvas = document.querySelector("#c");
-        let gl = canvas.getContext("webgl2");
-        if(!gl) {
-            alert("WebGL2 not supported");
-        }
+let canvas = document.querySelector("#c");
+let gl = canvas.getContext("webgl2");
+if(!gl) {
+    alert("WebGL2 not supported");
+}
 
 
-        var vertexShaderSource = `#version 300 es
+var vertexShaderSource = `#version 300 es
 
 precision highp float;
 in vec2 a_position;
 uniform vec2 u_resolution;
 uniform float zoom;
+uniform float x_start;
+uniform float y_start;
 out vec4 v_color;
 in vec2 start_position;
+out vec2 startz;
 
 void main() {
     gl_Position = vec4(a_position, 0, 1);
-    v_color = (gl_Position)* zoom;
+    v_color = vec4(gl_Position.x + x_start, gl_Position.y + y_start, 0.0, 1.0) * zoom;
 }
 `;
  
@@ -29,6 +32,7 @@ var fragmentShaderSource = `#version 300 es
 precision highp float;
 
 in vec4 v_color;
+in vec2 startz;
  
 uniform vec4 u_color;
 uniform float max_iterations;
@@ -64,10 +68,10 @@ outColor = vec4(vec3(res), 1.0);
 }
 `;
 
-        let xStartValue = -2.0;
-        let yStartValue = -2.0;
+        let xStartValue = -0.5;
+        let yStartValue = 0.0;
         let zoomValue = 1.0;
-        let maxIterationsValue = 16.0;
+        let maxIterationsValue = 1000.0;
 
         addEventListener("keydown", (e) => {
             switch (e.key) {
@@ -99,12 +103,12 @@ outColor = vec4(vec3(res), 1.0);
 
                 case "ArrowUp":
                     e.preventDefault();
-                    yStartValue-=0.1;
+                    yStartValue+=0.1;
                     break;
 
                 case "ArrowDown":
                     e.preventDefault();
-                    yStartValue+=0.1;
+                    yStartValue-=0.1;
                     break;
 
             }
@@ -148,7 +152,8 @@ outColor = vec4(vec3(res), 1.0);
     let colorLocation = gl.getUniformLocation(program, "u_color");
     let startLocation = gl.getUniformLocation(program, "start_position");
     let zoomLocation = gl.getUniformLocation(program,"zoom");
-//    let yStartLocation = gl.getUniformLocation(program, "y_start");
+    let xStartLocation = gl.getUniformLocation(program, "x_start");
+    let yStartLocation = gl.getUniformLocation(program, "y_start");
 
     let positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -169,39 +174,42 @@ outColor = vec4(vec3(res), 1.0);
 
     function drawScene() {
 
-    gl.bindVertexArray(vao);
-    gl.enableVertexAttribArray(positionAttributeLocation);
-    var size = 2;          // 2 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-    positionAttributeLocation, size, type, normalize, stride, offset);
+        console.log(xStartValue);
+        gl.bindVertexArray(vao);
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        var size = 2;          // 2 components per iteration
+        var type = gl.FLOAT;   // the data is 32bit floats
+        var normalize = false; // don't normalize the data
+        var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+        var offset = 0;        // start at the beginning of the buffer
+        gl.vertexAttribPointer(
+        positionAttributeLocation, size, type, normalize, stride, offset);
 
 
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-//    gl.viewport(0, 0, 200, 200);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.useProgram(program);
-        
-// Pass in the canvas resolution so we can convert from
-// pixels to clip space in the shader
-    gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
-    gl.uniform2f(startLocation, xStartValue, yStartValue);
-//    gl.bindAttribLocation(program, startLocation, xStartValue, yStartValue);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    //    gl.viewport(0, 0, 200, 200);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(program);
+            
+    // Pass in the canvas resolution so we can convert from
+    // pixels to clip space in the shader
+        gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+        gl.uniform2f(startLocation, xStartValue, yStartValue);
+    //    gl.bindAttribLocation(program, startLocation, xStartValue, yStartValue);
         gl.uniform4f(colorLocation, Math.random(), Math.random(), Math.random(), 1);
         gl.uniform1f(maxIterationsLocation, maxIterationsValue);
         gl.uniform1f(zoomLocation, zoomValue);
+        gl.uniform1f(xStartLocation, xStartValue);
+        gl.uniform1f(yStartLocation, yStartValue);
         gl.bindVertexArray(vao);
         var primitiveType = gl.TRIANGLES;
-var offset = 0;
-var count = 6;
-gl.drawArrays(primitiveType, offset, count);
+        var offset = 0;
+        var count = 6;
+        gl.drawArrays(primitiveType, offset, count);
 
-            requestAnimationFrame(drawScene);
-        }
+        requestAnimationFrame(drawScene);
+    }
 
 //        drawScene();
         requestAnimationFrame(drawScene);
